@@ -66,12 +66,14 @@ enum DATA_SHARING_SIZES {
   DS_Max_Worker_Threads = 992,
   // The size reserved for data in a shared memory slot.
   DS_Slot_Size = 256,
-  // The maximum number of threads in a worker warp.
-  DS_Max_Worker_Warp_Size = 32,
   // The number of bits required to represent the maximum number of threads in a
   // warp.
-  DS_Max_Worker_Warp_Size_Log2 = 5,
-  DS_Max_Worker_Warp_Size_Log2_Mask = (~0u >> (32-DS_Max_Worker_Warp_Size_Log2)),
+  DS_Max_Worker_Warp_Size_Bits = 5,
+  // The maximum number of threads in a worker warp.
+  DS_Max_Worker_Warp_Size = 1 << DS_Max_Worker_Warp_Size_Bits,
+  // Mask for the 5 (DS_Max_Worker_Warp_Size_Bits) LSBs of a thread ID,
+  // can be used to retrieve threadID % Warp_Size.
+  DS_Max_Worker_Warp_Size_Bit_Mask = DS_Max_Worker_Warp_Size - 1,
   // The slot size that should be reserved for a working warp.
   DS_Worker_Warp_Slot_Size = DS_Max_Worker_Warp_Size * DS_Slot_Size,
   // The maximum number of warps in use

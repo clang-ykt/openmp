@@ -23,12 +23,9 @@ __device__ static unsigned getThreadId() {
 }
 // Warp ID in the CUDA block
 __device__ static unsigned getWarpId() {
-  return threadIdx.x >> DS_Max_Worker_Warp_Size_Log2;
+  return threadIdx.x >> DS_Max_Worker_Warp_Size_Bits;
 }
-//// Team ID in the CUDA grid
-//__device__ static unsigned getTeamId() {
-//  return blockIdx.x;
-//}
+
 // The CUDA thread ID of the master thread.
 __device__ static unsigned getMasterThreadId() {
   unsigned Mask = DS_Max_Worker_Warp_Size - 1;
@@ -37,7 +34,7 @@ __device__ static unsigned getMasterThreadId() {
 // The lowest ID among the active threads in the warp.
 __device__ static unsigned getWarpMasterActiveThreadId() {
   unsigned long long Mask = __BALLOT_SYNC(0xFFFFFFFF, true);
-  unsigned long long ShNum = 32 - (getThreadId() & DS_Max_Worker_Warp_Size_Log2_Mask);
+  unsigned long long ShNum = 32 - (getThreadId() & DS_Max_Worker_Warp_Size_Bit_Mask);
   unsigned long long Sh = Mask << ShNum;
   return __popc(Sh);
 }
@@ -45,10 +42,7 @@ __device__ static unsigned getWarpMasterActiveThreadId() {
 __device__ static bool IsMasterThread() {
   return getMasterThreadId() == getThreadId();
 }
-// Return true if this is the first thread in the warp.
-//static bool IsWarpMasterThread() {
-//  return (getThreadId() & DS_Max_Worker_Warp_Size_Log2_Mask) == 0u;
-//}
+
 // Return true if this is the first active thread in the warp.
 __device__ static bool IsWarpMasterActiveThread() {
   return getWarpMasterActiveThreadId() == 0u;
@@ -303,7 +297,7 @@ EXTERN void* __kmpc_get_data_sharing_environment_frame(int32_t SourceThreadID,
 
   // Get the frame used by the requested thread.
 
-  unsigned SourceWID = SourceThreadID >> DS_Max_Worker_Warp_Size_Log2;
+  unsigned SourceWID = SourceThreadID >> DS_Max_Worker_Warp_Size_Bits;
 
   DSPRINT(DSFLAG,"Source  warp: %d\n", SourceWID);
 
@@ -311,8 +305,3 @@ EXTERN void* __kmpc_get_data_sharing_environment_frame(int32_t SourceThreadID,
   DSPRINT0(DSFLAG,"Exiting __kmpc_get_data_sharing_environment_frame\n");
   return P;
 }
-
-//EXTERN void __kmpc_samuel_print(int64_t Bla){
-//  DSPRINT(DSFLAG,"Sam print: %016llx\n",Bla);
-//
-//}

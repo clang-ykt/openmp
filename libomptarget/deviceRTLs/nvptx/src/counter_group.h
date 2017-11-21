@@ -11,13 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef SRC_COUNTER_GROUP_H_
-#define SRC_COUNTER_GROUP_H_
+#ifndef _OMPTARGET_NVPTX_COUNTER_GROUP_H_
+#define _OMPTARGET_NVPTX_COUNTER_GROUP_H_
 
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <cuda.h>
+#include "option.h"
 
 // counter group type for synchronizations
 class omptarget_nvptx_CounterGroup {

@@ -1,4 +1,4 @@
-//===------------- objects.cu - NVPTX OpenMP GPU objects --------- CUDA -*-===//
+//===------------ omp_data.cu - NVPTX OpenMP GPU objects --------- CUDA -*-===//
 //
 //                     The LLVM Compiler Infrastructure
 //

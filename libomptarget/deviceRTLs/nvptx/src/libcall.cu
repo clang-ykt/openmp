@@ -17,13 +17,15 @@
 #define TICK ((double) 1.0 / 745000000.0)
 
 EXTERN double omp_get_wtick(void) {
-  double rc = TICK; // host reports 745 mHz
-  PRINT(LD_IO, "call omp_get_wtick() returns %g\n", rc);
-  return rc;
+  printf("omp_get_wtick() not supported\n");
+  asm("trap;");
+  return 0.0;
 }
 
 EXTERN double omp_get_wtime(void) {
-  double rc = TICK * clock64();
+  unsigned long long nsecs;
+  asm("mov.u64  %0, %%globaltimer;" : "=l"(nsecs));
+  double rc = (double) nsecs / 1E9;
   PRINT(LD_IO, "call omp_get_wtime() returns %g\n", rc);
   return rc;
 }
@@ -185,8 +187,18 @@ EXTERN int omp_get_ancestor_thread_num(int level) {
       ASSERT0(LT_FUSSY, currTaskDescr,
               "do not expect fct to be called in a non-active thread");
       do {
-        if (DON(LD_IOD))
-          PrintTaskDescr(currTaskDescr, (char *)"ancestor", steps);
+        if (DON(LD_IOD)) {
+          // print current state
+          omp_sched_t sched = currTaskDescr->GetRuntimeSched();
+          PRINT(LD_ALL, "task descr %s %d: %s, in par %d, dyn %d, rt sched %d,"
+                " chunk %lld; tid %d, tnum %d, nthreads %d\n", "ancestor",
+                steps, (currTaskDescr->IsParallelConstruct() ? "par" : "task"),
+                currTaskDescr->InParallelRegion(), currTaskDescr->IsDynamic(),
+                sched,
+                currTaskDescr->RuntimeChunkSize(), currTaskDescr->ThreadId(),
+                currTaskDescr->ThreadsInTeam(), currTaskDescr->NThreads());
+        }
+
         if (currTaskDescr->IsParallelConstruct()) {
           // found the level
           if (!steps) {
@@ -390,7 +402,6 @@ EXTERN int omp_test_lock(omp_lock_t *lock) {
   int compare = UNSET;
   int val = SET;
 
-  // TODO: should check for the lock to be SET?
   int ret = atomicCAS(lock, compare, val);
 
   PRINT(LD_IO, "call omp_test_lock() return %d\n", ret);

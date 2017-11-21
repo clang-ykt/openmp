@@ -121,10 +121,13 @@ any binary. Instead, this is used to overcome the input compiler checks done by
 NVCC. E.g. if using a default host compiler that is not compatible with NVCC,
 this option can be use to pass to NVCC a valid compiler to avoid the error. 
 
--DLIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY="35"
+-DLIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY="30"
 Comma-separated list of CUDA compute capabilities that should be supported by
 the NVPTX device RTL. E.g. for compute capabilities 3.0 and 3.5, the option 
 "30,35" should be used.
+
+-DLIBOMPTARGET_NVPTX_DEBUG
+Enable printing of debug messages from the nvptx runtime.
 
 =======================
 Example usages of CMake

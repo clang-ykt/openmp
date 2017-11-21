@@ -173,7 +173,7 @@ EXTERN void __kmpc_spmd_kernel_init(int ThreadLimit,
 
   if (RequiresDataSharing && threadId % WARPSIZE == 0) {
     // Warp master innitializes data sharing environment.
-    unsigned WID = threadId >> DS_Max_Worker_Warp_Size_Log2;
+    unsigned WID = threadId >> DS_Max_Worker_Warp_Size_Bits;
     __kmpc_data_sharing_slot *RootS = currTeamDescr.RootS(WID);
     DataSharingState.SlotPtr[WID] = RootS;
     DataSharingState.StackPtr[WID] = (void*)&RootS->Data[0];

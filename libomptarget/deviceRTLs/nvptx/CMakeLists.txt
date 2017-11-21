@@ -24,7 +24,7 @@ endif()
 
 # We can't use clang as nvcc host preprocessor, so we attempt to replace it with
 # gcc.
-if(CUDA_HOST_COMPILER MATCHES "(clang)|(.*/clang)$")
+if(CUDA_HOST_COMPILER MATCHES "(clang)")
 
   find_program(LIBOMPTARGET_NVPTX_ALTERNATE_GCC_HOST_COMPILER NAMES gcc)
 
@@ -33,7 +33,7 @@ if(CUDA_HOST_COMPILER MATCHES "(clang)|(.*/clang)$")
     libomptarget_say("Please include gcc in your path or set LIBOMPTARGET_NVPTX_ALTERNATE_HOST_COMPILER to the full path of of valid compiler.")
     return()
   endif()
-  set(CUDA_HOST_COMPILER "${LIBOMPTARGET_NVPTX_ALTERNATE_GCC_HOST_COMPILER}")
+  set(CUDA_HOST_COMPILER "${LIBOMPTARGET_NVPTX_ALTERNATE_GCC_HOST_COMPILER}" CACHE FILEPATH "" FORCE)
 endif()
 
 if(LIBOMPTARGET_DEP_CUDA_FOUND)
@@ -47,27 +47,26 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
       src/cancel.cu
       src/critical.cu
       src/data_sharing.cu
-      src/debug.cu
       src/libcall.cu
       src/loop.cu
       src/omptarget-nvptx.cu
       src/parallel.cu
       src/reduction.cu
-      src/stdio.cu
       src/sync.cu
       src/task.cu
   )
 
   set(omp_data_objects src/omp_data.cu)
 
-  # Get all the compute capabilities the user requested or use SM_35 by default.
+  # Get all the compute capabilities the user requested or use SM_30 by default.
+  # SM_30 is what clang uses by default.
   if(LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY)
     string(REPLACE "," ";" nvptx_sm_list ${LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY})
     foreach(sm ${nvptx_sm_list})
       set(CUDA_ARCH ${CUDA_ARCH} -gencode arch=compute_${sm},code=sm_${sm})
     endforeach()
   else()
-    set(CUDA_ARCH -arch sm_35)
+    set(CUDA_ARCH -arch sm_30)
   endif()
 
   # Activate RTL message dumps if requested by the user.
@@ -120,6 +119,10 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
       set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER_FROM_TREE clang)
     else()
       find_program(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER clang++)
+      if(NOT LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER)
+        libomptarget_say("Cannot find a CUDA compiler capable of emitting LLVM bitcode.")
+        libomptarget_say("Please configure with flag -DLIBOMPTARGET_NVPTX_CUDA_COMPILER")
+      endif()
     endif()
 
     if (NOT LIBOMPTARGET_NVPTX_BC_LINKER STREQUAL "")
@@ -133,16 +136,10 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
         set(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER_FROM_TREE llvm-link)
     else()
       find_program(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER llvm-link)
-    endif()
-
-
-    if(NOT LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER)
-      libomptarget_say("Cannot find a CUDA compiler capable of emitting LLVM bitcode.")
-      libomptarget_say("Please configure with flag -DLIBOMPTARGET_NVPTX_CUDA_COMPILER")
-    endif()
-    if(NOT LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER)
-      libomptarget_say("Cannot find a linker capable of linking LLVM bitcode objects.")
-      libomptarget_say("Please configure with flag -DLIBOMPTARGET_NVPTX_BC_LINKER")
+      if(NOT LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER)
+        libomptarget_say("Cannot find a linker capable of linking LLVM bitcode objects.")
+        libomptarget_say("Please configure with flag -DLIBOMPTARGET_NVPTX_BC_LINKER")
+      endif()
     endif()
 
     if(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER AND LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER)
@@ -150,9 +147,9 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
 
       # Decide which ptx version to use. We use 5.0 for CUDA 8 or 4.2 for older versions
       if(CUDA_VERSION_MAJOR LESS 8)
-	set(CUDA_PTX_VERSION ptx42)
+        set(CUDA_PTX_VERSION ptx42)
       elseif(CUDA_VERSION_MAJOR LESS 9)
-	set(CUDA_PTX_VERSION ptx50)
+        set(CUDA_PTX_VERSION ptx50)
       else()
         set(CUDA_PTX_VERSION ptx60)
       endif()     
@@ -175,17 +172,14 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
         set(CUDA_FLAGS ${CUDA_FLAGS} -Dnv_weak=weak)
       endif()
 
-      # This is currently broken
-      set(CUDA_INCLUDES -I/usr/include/powerpc64le-linux-gnu)
-
-      # Get all the compute capabilities the user requested or use SM_35 by default.
+      # Get all the compute capabilities the user requested or use SM_30 by default.
       set(CUDA_ARCH "")
       if(nvptx_sm_list)
         foreach(sm ${nvptx_sm_list})
           set(CUDA_ARCH ${CUDA_ARCH} --cuda-gpu-arch=sm_${sm})
         endforeach()
       else()
-        set(CUDA_ARCH --cuda-gpu-arch=sm_35)
+        set(CUDA_ARCH --cuda-gpu-arch=sm_30)
       endif()
 
       # Compile cuda files to bitcode.

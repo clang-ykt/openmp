@@ -12,7 +12,6 @@
 //===----------------------------------------------------------------------===//
 
 #include <stdio.h>
-#include <complex.h>
 
 #include "omptarget-nvptx.h"
 
