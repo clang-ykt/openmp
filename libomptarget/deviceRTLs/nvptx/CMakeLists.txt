@@ -24,7 +24,7 @@ endif()
 
 # We can't use clang as nvcc host preprocessor, so we attempt to replace it with
 # gcc.
-if(CUDA_HOST_COMPILER MATCHES "(clang)")
+if(CUDA_HOST_COMPILER MATCHES clang)
 
   find_program(LIBOMPTARGET_NVPTX_ALTERNATE_GCC_HOST_COMPILER NAMES gcc)
 
@@ -58,15 +58,12 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
 
   set(omp_data_objects src/omp_data.cu)
 
-  # Get all the compute capabilities the user requested or use SM_30 by default.
-  # SM_30 is what clang uses by default.
+  # Get the compute capability the user requested or use SM_35 by default.
+  # SM_35 is what clang uses by default.
   if(LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY)
-    string(REPLACE "," ";" nvptx_sm_list ${LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY})
-    foreach(sm ${nvptx_sm_list})
-      set(CUDA_ARCH ${CUDA_ARCH} -gencode arch=compute_${sm},code=sm_${sm})
-    endforeach()
+    set(CUDA_ARCH ${CUDA_ARCH} -gencode arch=compute_${LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY},code=sm_${LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY})
   else()
-    set(CUDA_ARCH -arch sm_30)
+    set(CUDA_ARCH -arch sm_35)
   endif()
 
   # Activate RTL message dumps if requested by the user.
@@ -94,14 +91,14 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
   if (${LIBOMPTARGET_NVPTX_ENABLE_BCLIB})
 
     # Find a clang compiler capable of compiling cuda files to LLVM bitcode and
-    # an llvm linker.
+    # an LLVM linker.
     # We use the one provided for the user, attempt to use the
     # clang in the tree, attempt to use clang in the PATH, or just fail.
 
     set(LIBOMPTARGET_NVPTX_CUDA_COMPILER "" CACHE STRING
       "Location of a CUDA compiler capable of emitting LLVM bitcode.")
     set(LIBOMPTARGET_NVPTX_BC_LINKER "" CACHE STRING
-    "Location of a linker capable of linking LLVM bitcode objects.")
+      "Location of a linker capable of linking LLVM bitcode objects.")
 
     # Trace we require something from the tree.
     set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER_FROM_TREE "")
@@ -111,12 +108,11 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
       set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${LIBOMPTARGET_NVPTX_CUDA_COMPILER})
     elseif(NOT ${LIBOMPTARGET_STANDALONE_BUILD} AND
         EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../tools/clang/)
-      if(MSVC)
-        set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang.exe)
-      else()
-        set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang)
+      if(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+        set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${CMAKE_C_COMPILER})
+      else
+        libomptarget_error
       endif()
-      set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER_FROM_TREE clang)
     else()
       find_program(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER clang++)
       if(NOT LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER)
@@ -170,14 +166,12 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
         set(CUDA_FLAGS ${CUDA_FLAGS} -Dnv_weak=weak)
       endif()
 
-      # Get all the compute capabilities the user requested or use SM_30 by default.
+      # Get the compute capability the user requested or use SM_35 by default.
       set(CUDA_ARCH "")
-      if(nvptx_sm_list)
-        foreach(sm ${nvptx_sm_list})
-          set(CUDA_ARCH ${CUDA_ARCH} --cuda-gpu-arch=sm_${sm})
-        endforeach()
+      if(LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY)
+        set(CUDA_ARCH ${CUDA_ARCH} --cuda-gpu-arch=sm_${LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY})
       else()
-        set(CUDA_ARCH --cuda-gpu-arch=sm_30)
+        set(CUDA_ARCH --cuda-gpu-arch=sm_35)
       endif()
 
       # Compile cuda files to bitcode.
@@ -189,7 +183,7 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
         add_custom_command(OUTPUT ${outfile}.bc
           COMMAND ${LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER} ${CUDA_FLAGS} ${CUDA_ARCH} ${CUDA_INCLUDES}
             -c ${infile} -o ${outfile}.bc
-          DEPENDS ${infile} ${LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER_FROM_TREE}
+          DEPENDS ${infile}
           IMPLICIT_DEPENDS CXX ${infile}
           COMMENT "Building LLVM bitcode ${outfile}.bc"
           VERBATIM
@@ -220,6 +214,7 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
 
     endif()
   endif()
+]]
 
 else()
   libomptarget_say("Not building CUDA offloading device RTL: CUDA tools not found in the system.")

@@ -14,12 +14,13 @@
 
 #include "omptarget-nvptx.h"
 
+// Timer precision is 1ns
+#define TIMER_PRECISION ((double) 1E-9)
 #define TICK ((double) 1.0 / 745000000.0)
 
 EXTERN double omp_get_wtick(void) {
-  printf("omp_get_wtick() not supported\n");
-  asm("trap;");
-  return 0.0;
+  PRINT(LD_IO, "omp_get_wtick() returns %g\n", TIMER_PRECISION);
+  return TIMER_PRECISION;
 }
 
 EXTERN double omp_get_wtime(void) {

@@ -31,22 +31,26 @@ __device__ static unsigned getMasterThreadId() {
   unsigned Mask = DS_Max_Worker_Warp_Size - 1;
   return (getNumThreads() - 1) & (~Mask);
 }
-// The lowest ID among the active threads in the warp.
-__device__ static unsigned getWarpMasterActiveThreadId() {
-  unsigned long long Mask = __BALLOT_SYNC(0xFFFFFFFF, true);
-  unsigned long long ShNum = 32 - (getThreadId() & DS_Max_Worker_Warp_Size_Bit_Mask);
+
+// Find the active threads in the warp - return a mask whose n-th bit is set if
+// the n-th thread in the warp is active.
+__device__ static unsigned getActiveThreadsMask() {
+  return __BALLOT_SYNC(0xFFFFFFFF, true);
+}
+
+// Return true if this is the first active thread in the warp.
+__device__ static bool IsWarpMasterActiveThread() {
+  unsigned long long Mask = getActiveThreadsMask();
+  unsigned long long ShNum = DS_Max_Worker_Warp_Size -
+      (getThreadId() & DS_Max_Worker_Warp_Size_Bit_Mask);
   unsigned long long Sh = Mask << ShNum;
-  return __popc(Sh);
+  return Sh == 0;
 }
 // Return true if this is the master thread.
 __device__ static bool IsMasterThread() {
   return getMasterThreadId() == getThreadId();
 }
 
-// Return true if this is the first active thread in the warp.
-__device__ static bool IsWarpMasterActiveThread() {
-  return getWarpMasterActiveThreadId() == 0u;
-}
 /// Return the provided size aligned to the size of a pointer.
 __device__ static size_t AlignVal(size_t Val) {
   const size_t Align = (size_t)sizeof(void*);
@@ -123,7 +127,7 @@ EXTERN void* __kmpc_data_sharing_environment_begin(
   DSPRINT(DSFLAG,"Default Data Size %016llx\n", SharingDefaultDataSize);
 
   unsigned WID = getWarpId();
-  unsigned CurActiveThreads = __BALLOT_SYNC(0xFFFFFFFF, true);
+  unsigned CurActiveThreads = getActiveThreadsMask();
 
   __kmpc_data_sharing_slot *&SlotP = DataSharingState.SlotPtr[WID];
   void *&StackP = DataSharingState.StackPtr[WID];
@@ -246,7 +250,7 @@ EXTERN void __kmpc_data_sharing_environment_end(
     return;
   }
 
-  int32_t CurActive = __BALLOT_SYNC(0xFFFFFFFF, true);
+  int32_t CurActive = getActiveThreadsMask();
 
   // Only the warp master can restore the stack and frame information, and only if there are no other threads left behind in this environment (i.e. the warp diverged and returns in different places). This only works if we assume that threads will converge right after the call site that started the environment.
   if (IsWarpMasterActiveThread()) {
