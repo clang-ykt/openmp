@@ -110,8 +110,8 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
         EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../tools/clang/)
       if(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
         set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${CMAKE_C_COMPILER})
-      else
-        libomptarget_error
+      else()
+        libomptarget_error_say("The bitcode library can only be built if CMAKE_C_COMPILER is set to a clang compiler.")
       endif()
     else()
       find_program(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER clang++)
@@ -214,7 +214,6 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
 
     endif()
   endif()
-]]
 
 else()
   libomptarget_say("Not building CUDA offloading device RTL: CUDA tools not found in the system.")
