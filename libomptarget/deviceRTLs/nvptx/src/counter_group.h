@@ -14,9 +14,6 @@
 #ifndef _OMPTARGET_NVPTX_COUNTER_GROUP_H_
 #define _OMPTARGET_NVPTX_COUNTER_GROUP_H_
 
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "option.h"
 
 // counter group type for synchronizations

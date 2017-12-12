@@ -16,7 +16,6 @@
 
 // Timer precision is 1ns
 #define TIMER_PRECISION ((double) 1E-9)
-#define TICK ((double) 1.0 / 745000000.0)
 
 EXTERN double omp_get_wtick(void) {
   PRINT(LD_IO, "omp_get_wtick() returns %g\n", TIMER_PRECISION);
@@ -26,7 +25,7 @@ EXTERN double omp_get_wtick(void) {
 EXTERN double omp_get_wtime(void) {
   unsigned long long nsecs;
   asm("mov.u64  %0, %%globaltimer;" : "=l"(nsecs));
-  double rc = (double) nsecs / 1E9;
+  double rc = (double) nsecs * TIMER_PRECISION;
   PRINT(LD_IO, "call omp_get_wtime() returns %g\n", rc);
   return rc;
 }
