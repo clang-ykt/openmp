@@ -93,7 +93,7 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
     # Find a clang compiler capable of compiling cuda files to LLVM bitcode and
     # an LLVM linker.
     # We use the one provided by the user, attempt to use the one used to build
-    # clang, attempt to use clang in the PATH, or just fail.
+    # libomptarget, attempt to use clang in the PATH, or just fail.
 
     set(LIBOMPTARGET_NVPTX_CUDA_COMPILER "" CACHE STRING
       "Location of a CUDA compiler capable of emitting LLVM bitcode.")
