@@ -28,6 +28,7 @@
 #include "counter_group.h"
 #include "debug.h" // debug
 #include "interface.h" // interfaces with omp, compiler, and user
+#include "state-queue.h"
 #include "support.h"
 
 #define OMPTARGET_NVPTX_VERSION 1.1
