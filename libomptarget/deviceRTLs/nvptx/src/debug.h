@@ -165,7 +165,7 @@
   {                                                                            \
     if (DON(_flag)) {                                                          \
       printf("<b %2d, t %4d, w %2d, l %2d>: " _str, blockIdx.x, threadIdx.x,   \
-             threadIdx.x / warpSize, threadIdx.x & 0x1F);                      \
+             threadIdx.x / WARPSIZE, threadIdx.x & 0x1F);                      \
     }                                                                          \
   }
 
@@ -173,7 +173,7 @@
   {                                                                            \
     if (DON(_flag)) {                                                          \
       printf("<b %2d, t %4d, w %2d, l %2d>: " _str, blockIdx.x, threadIdx.x,   \
-             threadIdx.x / warpSize, threadIdx.x & 0x1F, _args);               \
+             threadIdx.x / WARPSIZE, threadIdx.x & 0x1F, _args);               \
     }                                                                          \
   }
 #else
@@ -218,7 +218,7 @@
   {                                                                            \
     if (TON(_flag) && !(_cond)) {                                              \
       printf("<b %3d, t %4d, w %2d, l %2d> ASSERT: " _str "\n", blockIdx.x,    \
-             threadIdx.x, threadIdx.x / warpSize, threadIdx.x & 0x1F);         \
+             threadIdx.x, threadIdx.x / WARPSIZE, threadIdx.x & 0x1F);         \
       assert(_cond);                                                           \
     }                                                                          \
   }
@@ -226,7 +226,7 @@
   {                                                                            \
     if (TON(_flag) && !(_cond)) {                                              \
       printf("<b %3d, t %4d, w %2d, l %d2> ASSERT: " _str "\n", blockIdx.x,    \
-             threadIdx.x, threadIdx.x / warpSize, threadIdx.x & 0x1F, _args);  \
+             threadIdx.x, threadIdx.x / WARPSIZE, threadIdx.x & 0x1F, _args);  \
       assert(_cond);                                                           \
     }                                                                          \
   }
@@ -254,14 +254,14 @@
   {                                                                            \
     if (WON(_flag)) {                                                          \
       printf("<b %2d, t %4d, w %2d, l %2d> WARNING: " _str, blockIdx.x,        \
-             threadIdx.x, threadIdx.x / warpSize, threadIdx.x & 0x1F);         \
+             threadIdx.x, threadIdx.x / WARPSIZE, threadIdx.x & 0x1F);         \
     }                                                                          \
   }
 #define WARNING(_flag, _str, _args...)                                         \
   {                                                                            \
     if (WON(_flag)) {                                                          \
       printf("<b %2d, t %4d, w %2d, l %2d> WARNING: " _str, blockIdx.x,        \
-             threadIdx.x, threadIdx.x / warpSize, threadIdx.x & 0x1F, _args);  \
+             threadIdx.x, threadIdx.x / WARPSIZE, threadIdx.x & 0x1F, _args);  \
     }                                                                          \
   }
 

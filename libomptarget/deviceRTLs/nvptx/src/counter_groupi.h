@@ -11,7 +11,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cuda_runtime.h>
 #include "option.h"
 
 INLINE void omptarget_nvptx_CounterGroup::Clear() {

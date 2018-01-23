@@ -702,16 +702,16 @@ EXTERN void __kmpc_for_static_fini(kmp_Indent *loc, int32_t global_tid) {
 
 namespace {
 INLINE void syncWorkersInGenericMode(uint32_t NumThreads) {
-  int NumWarps = ((NumThreads + warpSize - 1) / warpSize);
+  int NumWarps = ((NumThreads + WARPSIZE - 1) / WARPSIZE);
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
   // On Volta and newer architectures we require that all lanes in
   // a warp (at least, all present for the kernel launch) participate in the
   // barrier.  This is enforced when launching the parallel region.  An
-  // exception is when there are < warpSize workers.  In this case only 1 worker
+  // exception is when there are < WARPSIZE workers.  In this case only 1 worker
   // is started, so we don't need a barrier.
   if (NumThreads > 1) {
 #endif
-    named_sync(L1_BARRIER, warpSize * NumWarps);
+    named_sync(L1_BARRIER, WARPSIZE * NumWarps);
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
   }
 #endif

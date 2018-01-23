@@ -68,7 +68,7 @@ INLINE int GetNumberOfThreadsInBlock() { return blockDim.x; }
 //      If NumThreads is 1024, master id is 992.
 //
 // Called in Generic Execution Mode only.
-INLINE int GetMasterThreadID() { return (blockDim.x - 1) & ~(warpSize - 1); }
+INLINE int GetMasterThreadID() { return (blockDim.x - 1) & ~(WARPSIZE - 1); }
 
 // The last warp is reserved for the master; other warps are workers.
 // Called in Generic Execution Mode only.
@@ -125,7 +125,7 @@ INLINE int GetNumberOfOmpThreads(int threadId,
 
   if (isRuntimeUninitialized) {
     rc = isSPMDExecutionMode ? GetNumberOfThreadsInBlock()
-                             : GetNumberOfThreadsInBlock() - warpSize;
+                             : GetNumberOfThreadsInBlock() - WARPSIZE;
   } else {
     omptarget_nvptx_TaskDescr *currTaskDescr =
         omptarget_nvptx_threadPrivateContext->GetTopLevelTaskDescr(
@@ -177,7 +177,7 @@ INLINE int GetNumberOfProcsInTeam() {
 INLINE unsigned long PadBytes(unsigned long size,
                               unsigned long alignment) // must be a power of 2
 {
-  // compute the necessary padding to satify alignment constraint
+  // compute the necessary padding to satisfy alignment constraint
   ASSERT(LT_FUSSY, (alignment & (alignment - 1)) == 0,
          "alignment %ld is not a power of 2\n", alignment);
   return (~(unsigned long)size + 1) & (alignment - 1);

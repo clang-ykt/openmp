@@ -28,7 +28,7 @@ __device__ static unsigned getWarpId() {
 
 // The CUDA thread ID of the master thread.
 __device__ static unsigned getMasterThreadId() {
-  unsigned Mask = DS_Max_Worker_Warp_Size - 1;
+  unsigned Mask = WARPSIZE - 1;
   return (getNumThreads() - 1) & (~Mask);
 }
 
@@ -41,8 +41,7 @@ __device__ static unsigned getActiveThreadsMask() {
 // Return true if this is the first active thread in the warp.
 __device__ static bool IsWarpMasterActiveThread() {
   unsigned long long Mask = getActiveThreadsMask();
-  unsigned long long ShNum = DS_Max_Worker_Warp_Size -
-      (getThreadId() & DS_Max_Worker_Warp_Size_Bit_Mask);
+  unsigned long long ShNum = WARPSIZE - (getThreadId() % WARPSIZE);
   unsigned long long Sh = Mask << ShNum;
   return Sh == 0;
 }

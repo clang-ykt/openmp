@@ -135,25 +135,6 @@ static INLINE uint32_t gpu_irregular_simd_reduce(void *reduce_data, kmp_ShuffleR
   return (logical_lane_id == 0);
 }
 
-//
-// runtime support for array reduction
-//
-
-#define ARRAYATOMIC_GENOP(_name, _dtype, _op)                                  \
-  EXTERN void __array_atomic_##_name##_##_op(                                  \
-      kmp_Indent *id_ref, int32_t gtid, _dtype *lhs, _dtype *rhs, int64_t n) { \
-    PRINT(LD_LOOP, "Reduction: thead %d\n", gtid);                             \
-    for (int i = 0; i < n / sizeof(_dtype); i++) {                             \
-      __kmpc_atomic_##_name##_##_op(id_ref, gtid, lhs + i, rhs[i]);            \
-    }                                                                          \
-  }                                                                            \
-  EXTERN void __gpu_array_warpBlockRedu_##_name##_##_op(_dtype *ldata,         \
-                                                        int64_t n) {           \
-    for (int i = 0; i < n / sizeof(_dtype); i++) {                             \
-      ldata[i] = __gpu_warpBlockRedu_##_name##_##_op(ldata[i]);                \
-    }                                                                          \
-  }
-
 EXTERN
 int32_t __kmpc_nvptx_simd_reduce_nowait(int32_t global_tid,
                                         int32_t num_vars, size_t reduce_size,
@@ -169,7 +150,6 @@ int32_t __kmpc_nvptx_simd_reduce_nowait(int32_t global_tid,
   }
 }
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
 INLINE
 int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
                                      size_t reduce_size, void *reduce_data,
@@ -187,6 +167,8 @@ int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
    * 3. Warp 0 reduces to a single value.
    * 4. The reduced value is available in the thread that returns 1.
    */
+
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
   uint32_t BlockThreadId = GetLogicalThreadIdInBlock();
   uint32_t NumThreads = GetNumberOfOmpThreads(BlockThreadId, isSPMDExecutionMode, isRuntimeUninitialized);
   uint32_t WarpsNeeded = (NumThreads+WARPSIZE-1)/WARPSIZE;
@@ -201,8 +183,6 @@ int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
   else if (NumThreads > 1) // Only SPMD execution mode comes thru this case.
     gpu_irregular_warp_reduce(reduce_data, shflFct,
         /*LaneCount=*/NumThreads % WARPSIZE, /*LaneId=*/GetThreadIdInBlock() % WARPSIZE);
-//  else if (!isRuntimeUninitialized) // Dispersed lanes. Only threads in L2 parallel region may enter here; return early.
-//    return gpu_irregular_simd_reduce(reduce_data, shflFct);
 
   // When we have more than [warpsize] number of threads
   // a block reduction is performed here.
@@ -217,33 +197,9 @@ int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
       gpu_irregular_warp_reduce(reduce_data, shflFct, WarpsNeeded, BlockThreadId);
 
     return BlockThreadId == 0;
-//  } else if (isRuntimeUninitialized /* Never an L2 parallel region without the OMP runtime */) {
-//    return BlockThreadId == 0;
   }
   return BlockThreadId == 0;
-
-  // Get the OMP thread Id. This is different from BlockThreadId in the case of
-  // an L2 parallel region.
-//  return GetOmpThreadId(BlockThreadId, isSPMDExecutionMode, isRuntimeUninitialized) == 0;
-}
 #else
-INLINE
-int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
-                                     size_t reduce_size, void *reduce_data,
-                                     kmp_ShuffleReductFctPtr shflFct,
-                                     kmp_InterWarpCopyFctPtr cpyFct,
-                                     bool isSPMDExecutionMode,
-                                     bool isRuntimeUninitialized = false) {
-  /*
-   * This reduce function handles reduction within a team. It handles
-   * parallel regions in both L1 and L2 parallelism levels. It also
-   * supports Generic, SPMD, and NoOMP modes.
-   *
-   * 1. Reduce within a warp.
-   * 2. Warp master copies value to warp 0 via shared memory.
-   * 3. Warp 0 reduces to a single value.
-   * 4. The reduced value is available in the thread that returns 1.
-   */
   uint32_t Liveness = __BALLOT_SYNC(0xFFFFFFFF, true);
   if (Liveness == 0xffffffff) // Full warp
     gpu_regular_warp_reduce(reduce_data, shflFct);
@@ -310,7 +266,6 @@ int32_t __kmpc_nvptx_parallel_reduce_nowait_simple_generic(
                                       /*isRuntimeUninitialized=*/true);
 }
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
 INLINE
 int32_t nvptx_teams_reduce_nowait(
     int32_t global_tid, int32_t num_vars, size_t reduce_size, void *reduce_data,
@@ -361,6 +316,7 @@ int32_t nvptx_teams_reduce_nowait(
 
   // Threads in excess of #teams do not participate in reduction of the
   // scratchpad values.
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
   uint32_t ActiveThreads = NumThreads;
   if (NumTeams < NumThreads) {
     ActiveThreads = (NumTeams < WARPSIZE) ? 1 : NumTeams & ~((uint16_t)WARPSIZE - 1);
@@ -395,60 +351,7 @@ int32_t nvptx_teams_reduce_nowait(
     if (WarpId == 0)
       gpu_irregular_warp_reduce(reduce_data, shflFct, WarpsNeeded, ThreadId);
   }
-
-  return ThreadId == 0;
-}
 #else
-INLINE
-int32_t nvptx_teams_reduce_nowait(
-    int32_t global_tid, int32_t num_vars, size_t reduce_size, void *reduce_data,
-    kmp_ShuffleReductFctPtr shflFct, kmp_InterWarpCopyFctPtr cpyFct,
-    kmp_CopyToScratchpadFctPtr scratchFct, kmp_LoadReduceFctPtr ldFct,
-    bool isSPMDExecutionMode, bool isRuntimeUninitialized = false) {
-  uint32_t ThreadId = GetLogicalThreadIdInBlock();
-  // In non-generic mode all workers participate in the teams reduction.
-  // In generic mode only the team master participates in the teams
-  // reduction because the workers are waiting for parallel work.
-  uint32_t NumThreads = isSPMDExecutionMode
-    ? GetNumberOfOmpThreads(ThreadId, /*isSPMDExecutionMode=*/true, isRuntimeUninitialized)
-    : /*Master thread only*/ 1;
-  uint32_t TeamId = GetBlockIdInKernel();
-  uint32_t NumTeams = GetNumberOfBlocksInKernel();
-  __shared__ volatile bool IsLastTeam;
-
-  // Team masters of all teams write to the scratchpad.
-  if (ThreadId == 0) {
-    unsigned int *timestamp = GetTeamsReductionTimestamp();
-    char *scratchpad = GetTeamsReductionScratchpad();
-
-    scratchFct(reduce_data, scratchpad, TeamId, NumTeams);
-    __threadfence();
-
-    // atomicInc increments 'timestamp' and has a range [0, NumTeams-1].
-    // It resets 'timestamp' back to 0 once the last team increments
-    // this counter.
-    unsigned val = atomicInc(timestamp, NumTeams-1);
-    IsLastTeam = val == NumTeams - 1;
-  }
-
-  // We have to wait on L1 barrier because in GENERIC mode the workers
-  // are waiting on barrier 0 for work.
-  //
-  // If we guard this barrier as follows it leads to deadlock, probably
-  // because of a compiler bug: if (!IsGenericMode()) __syncthreads();
-  uint16_t SyncWarps = (NumThreads+WARPSIZE-1)/WARPSIZE;
-  named_sync(L1_BARRIER, SyncWarps*WARPSIZE);
-
-  // If this team is not the last, quit.
-  if (/* Volatile read by all threads */ !IsLastTeam)
-    return 0;
-
-  //
-  // Last team processing.
-  //
-
-  // Threads in excess of #teams do not participate in reduction of the
-  // scratchpad values.
   if (ThreadId >= NumTeams)
     return 0;
 

@@ -108,12 +108,14 @@ link time optimization of the omp runtime and application code.
 Location of a CUDA compiler capable of emitting LLVM bitcode.
 Currently only the Clang compiler is supported. This is only used
 when building the CUDA LLVM bitcode offloading device RTL. If
-unspecified, the default paths are inspected.
+unspecified and the CMake C compiler is Clang, then Clang is used.
 
 -DLIBOMPTARGET_NVPTX_BC_LINKER=<LLVM bitcode linker>
 Location of a linker capable of linking LLVM bitcode objects.
 This is only used when building the CUDA LLVM bitcode offloading
-device RTL. If unspecified, the default paths are inspected.
+device RTL. If unspecified and the CMake C compiler is Clang and
+there exists a llvm-link binary in the directory containing Clang,
+then this llvm-link binary is used.
 
 -DLIBOMPTARGET_NVPTX_ALTERNATE_HOST_COMPILER=""
 Host compiler to use with NVCC. This compiler is not going to be used to produce

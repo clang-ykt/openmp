@@ -280,13 +280,13 @@ EXTERN void __kmpc_kernel_prepare_parallel(void *WorkFn, int16_t IsOMPRuntimeIni
 #if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
   // On Volta and newer architectures we require that all lanes in
   // a warp participate in the parallel region.  Round down to a
-  // multiple of warpSize since it is legal to do so in OpenMP.
+  // multiple of WARPSIZE since it is legal to do so in OpenMP.
   // CudaThreadsAvail is the number of workers available in this
   // kernel instance and is greater than or equal to
   // currTaskDescr->ThreadLimit().
   if (CudaThreadsForParallel < CudaThreadsAvail) {
-    CudaThreadsForParallel = (CudaThreadsForParallel < warpSize) ? 1 :
-      CudaThreadsForParallel & ~((uint16_t)warpSize - 1);
+    CudaThreadsForParallel = (CudaThreadsForParallel < WARPSIZE) ? 1 :
+      CudaThreadsForParallel & ~((uint16_t)WARPSIZE - 1);
   }
 #endif
 
@@ -455,8 +455,8 @@ EXTERN void __kmpc_push_simd_limit(kmp_Indent *loc, int32_t tid,
       simd_limit;
 }
 
-// Do not do nothing: the host guarantees we started the requested number of
-// teams and we only need inspection gridDim
+// Do nothing. The host guarantees we started the requested number of
+// teams and we only need inspection of gridDim.
 
 EXTERN void __kmpc_push_num_teams(kmp_Indent *loc, int32_t tid,
                                   int32_t num_teams, int32_t thread_limit) {

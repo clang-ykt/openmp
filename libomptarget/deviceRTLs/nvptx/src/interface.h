@@ -361,11 +361,6 @@ EXTERN void __kmpc_reduce_conditional_lastprivate(kmp_Indent *loc,
   int32_t global_tid, int32_t varNum, void *array);
 
 // reduction
-EXTERN int32_t __kmpc_reduce41(kmp_Indent *loc, int32_t global_tid,
-                               int32_t varNum, size_t reduceSize,
-                               void *reduceData, void *reduceArraySize,
-                               kmp_ReductFctPtr *reductFct,
-                               kmp_CriticalName *lock);
 EXTERN void __kmpc_nvptx_end_reduce(int32_t global_tid);
 EXTERN void __kmpc_nvptx_end_reduce_nowait(int32_t global_tid);
 EXTERN int32_t __kmpc_nvptx_parallel_reduce_nowait(int32_t global_tid,
