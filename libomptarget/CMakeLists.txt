@@ -91,6 +91,8 @@ if(LIBOMPTARGET_HAVE_STD_CPP11_FLAG)
   )
   
   include_directories(src/)
+  include_directories(../runtime/src/)
+  include_directories(${LIBOMP_KMP_CONFIG_H_PATH})
   
   # Build libomptarget library with libdl dependency.
   add_library(omptarget SHARED ${src_files})

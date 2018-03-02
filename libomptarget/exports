@@ -12,6 +12,12 @@ VERS1.0 {
     __tgt_target_data_update_nowait;
     __tgt_target_nowait;
     __tgt_target_teams_nowait;
+    __tgt_target_data_begin_depend;
+    __tgt_target_data_end_depend;
+    __tgt_target_data_update_depend;
+    __tgt_target_data_begin_nowait_depend;
+    __tgt_target_data_end_nowait_depend;
+    __tgt_target_data_update_nowait_depend;
     omp_get_num_devices;
     omp_get_initial_device;
     omp_target_alloc;
@@ -22,6 +28,7 @@ VERS1.0 {
     omp_target_associate_ptr;
     omp_target_disassociate_ptr;
     __kmpc_push_target_tripcount;
+    __kmpc_omp_target_task_alloc;
   local:
     *;
 };

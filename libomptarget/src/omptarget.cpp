@@ -1554,12 +1554,31 @@ static int target_data_begin(DeviceTy &Device, int32_t arg_num,
 }
 
 EXTERN void __tgt_target_data_begin_nowait(int64_t device_id, int32_t arg_num,
+    void **args_base, void **args, int64_t *arg_sizes, int64_t *arg_types) {
+  // Async not yet implemented, just call the blocking version
+  __tgt_target_data_begin(device_id, arg_num, args_base, args, arg_sizes,
+      arg_types);
+}
+
+EXTERN void __tgt_target_data_begin_depend(int64_t device_id, int32_t arg_num,
     void **args_base, void **args, int64_t *arg_sizes, int64_t *arg_types,
     int32_t depNum, void *depList, int32_t noAliasDepNum,
     void *noAliasDepList) {
   if (depNum + noAliasDepNum > 0)
     __kmpc_omp_taskwait(NULL, 0);
 
+  __tgt_target_data_begin(device_id, arg_num, args_base, args, arg_sizes,
+                          arg_types);
+}
+
+EXTERN void __tgt_target_data_begin_nowait_depend(int64_t device_id,
+    int32_t arg_num, void **args_base, void **args, int64_t *arg_sizes,
+    int64_t *arg_types, int32_t depNum, void *depList, int32_t noAliasDepNum,
+    void *noAliasDepList) {
+  if (depNum + noAliasDepNum > 0)
+    __kmpc_omp_taskwait(NULL, 0);
+
+  // Async not yet implemented, just call the blocking version
   __tgt_target_data_begin(device_id, arg_num, args_base, args, arg_sizes,
                           arg_types);
 }
@@ -1720,6 +1739,36 @@ static int target_data_end(DeviceTy &Device, int32_t arg_num, void **args_base,
   return rc;
 }
 
+EXTERN void __tgt_target_data_end_nowait(int64_t device_id, int32_t arg_num,
+    void **args_base, void **args, int64_t *arg_sizes, int64_t *arg_types) {
+  // Async not yet implemented, just call the blocking version
+  __tgt_target_data_end(device_id, arg_num, args_base, args, arg_sizes,
+      arg_types);
+}
+
+EXTERN void __tgt_target_data_end_depend(int64_t device_id, int32_t arg_num,
+    void **args_base, void **args, int64_t *arg_sizes, int64_t *arg_types,
+    int32_t depNum, void *depList, int32_t noAliasDepNum,
+    void *noAliasDepList) {
+  if (depNum + noAliasDepNum > 0)
+    __kmpc_omp_taskwait(NULL, 0);
+
+  __tgt_target_data_end(device_id, arg_num, args_base, args, arg_sizes,
+                          arg_types);
+}
+
+EXTERN void __tgt_target_data_end_nowait_depend(int64_t device_id,
+    int32_t arg_num, void **args_base, void **args, int64_t *arg_sizes,
+    int64_t *arg_types, int32_t depNum, void *depList, int32_t noAliasDepNum,
+    void *noAliasDepList) {
+  if (depNum + noAliasDepNum > 0)
+    __kmpc_omp_taskwait(NULL, 0);
+
+  // Async not yet implemented, just call the blocking version
+  __tgt_target_data_end(device_id, arg_num, args_base, args, arg_sizes,
+                          arg_types);
+}
+
 /// passes data from the target, releases target memory and destroys
 /// the host-target mapping (top entry from the stack of data maps)
 /// created by the last __tgt_target_data_begin.
@@ -1758,15 +1807,34 @@ EXTERN void __tgt_target_data_end(int64_t device_id, int32_t arg_num,
   target_data_end(Device, arg_num, args_base, args, arg_sizes, arg_types);
 }
 
-EXTERN void __tgt_target_data_end_nowait(int64_t device_id, int32_t arg_num,
+EXTERN void __tgt_target_data_update_nowait(int64_t device_id, int32_t arg_num,
+    void **args_base, void **args, int64_t *arg_sizes, int64_t *arg_types) {
+  // Async not yet implemented, just call the blocking version
+  __tgt_target_data_update(device_id, arg_num, args_base, args, arg_sizes,
+      arg_types);
+}
+
+EXTERN void __tgt_target_data_update_depend(int64_t device_id, int32_t arg_num,
     void **args_base, void **args, int64_t *arg_sizes, int64_t *arg_types,
     int32_t depNum, void *depList, int32_t noAliasDepNum,
     void *noAliasDepList) {
   if (depNum + noAliasDepNum > 0)
     __kmpc_omp_taskwait(NULL, 0);
 
-  __tgt_target_data_end(device_id, arg_num, args_base, args, arg_sizes,
-                        arg_types);
+  __tgt_target_data_update(device_id, arg_num, args_base, args, arg_sizes,
+                          arg_types);
+}
+
+EXTERN void __tgt_target_data_update_nowait_depend(int64_t device_id,
+    int32_t arg_num, void **args_base, void **args, int64_t *arg_sizes,
+    int64_t *arg_types, int32_t depNum, void *depList, int32_t noAliasDepNum,
+    void *noAliasDepList) {
+  if (depNum + noAliasDepNum > 0)
+    __kmpc_omp_taskwait(NULL, 0);
+
+  // Async not yet implemented, just call the blocking version
+  __tgt_target_data_update(device_id, arg_num, args_base, args, arg_sizes,
+                          arg_types);
 }
 
 /// passes data to/from the target.
@@ -1846,17 +1914,6 @@ EXTERN void __tgt_target_data_update(int64_t device_id, int32_t arg_num,
       Device.ShadowMtx.unlock();
     }
   }
-}
-
-EXTERN void __tgt_target_data_update_nowait(
-    int64_t device_id, int32_t arg_num, void **args_base, void **args,
-    int64_t *arg_sizes, int64_t *arg_types, int32_t depNum, void *depList,
-    int32_t noAliasDepNum, void *noAliasDepList) {
-  if (depNum + noAliasDepNum > 0)
-    __kmpc_omp_taskwait(NULL, 0);
-
-  __tgt_target_data_update(device_id, arg_num, args_base, args, arg_sizes,
-                           arg_types);
 }
 
 /// performs the same actions as data_begin in case arg_num is
@@ -2167,6 +2224,25 @@ EXTERN void __kmpc_push_target_tripcount(int64_t device_id,
   DP("__kmpc_push_target_tripcount(%" PRId64 ", %" PRIu64 ")\n", device_id,
       loop_tripcount);
   Devices[device_id].loopTripCnt = loop_tripcount;
+}
+
+EXTERN kmp_task_t *__kmpc_omp_target_task_alloc(ident_t *loc_ref,
+    kmp_int32 gtid, kmp_int32 flags, size_t sizeof_kmp_task_t,
+    size_t sizeof_shareds, kmp_routine_entry_t task_entry, int64_t device_id) {
+  if (device_id == OFFLOAD_DEVICE_DEFAULT) {
+    device_id = omp_get_default_device();
+  }
+
+  if (CheckDevice(device_id) != OFFLOAD_SUCCESS) {
+    DP("Failed to get device %" PRId64 " ready\n", device_id);
+    return NULL;
+  }
+
+  DP("__kmpc_omp_target_task_alloc(...) not yet implemented, returning NULL");
+//  return Klegacy_TaskAlloc(flag | KLEGACY_TARGET_TASK, sizeOfTaskInclPrivate,
+//    sizeOfSharedTable, sub, device_id, TRUE);
+  return __kmpc_omp_task_alloc(loc_ref, gtid, flags, sizeof_kmp_task_t,
+      sizeof_shareds, task_entry);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -404,3 +404,6 @@ endif()
 
 add_subdirectory(src)
 add_subdirectory(test)
+
+# Inform the parent scope where the "include" directory is located
+set(LIBOMP_KMP_CONFIG_H_PATH "${LIBOMP_KMP_CONFIG_H_PATH}" PARENT_SCOPE)
