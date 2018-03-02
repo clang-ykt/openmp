@@ -211,8 +211,12 @@ EXTERN void* __kmpc_data_sharing_environment_begin(
     }
   }
 
+#if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700)
+  __syncwarp(CurActiveThreads);
+#else
   // FIXME: Need to see the impact of doing it here.
   __threadfence_block();
+#endif
 
   DSPRINT0(DSFLAG,"Exiting __kmpc_data_sharing_environment_begin\n");
 
@@ -282,8 +286,12 @@ EXTERN void __kmpc_data_sharing_environment_end(
     }
   }
 
+#if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700)
+  __syncwarp(CurActive);
+#else
   // FIXME: Need to see the impact of doing it here.
   __threadfence_block();
+#endif
 
   DSPRINT0(DSFLAG,"Exiting __kmpc_data_sharing_environment_end\n");
   return;
