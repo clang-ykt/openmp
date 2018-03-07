@@ -2615,6 +2615,7 @@ typedef struct KMP_ALIGN_CACHE kmp_base_team {
 #if USE_ITT_BUILD
   void *t_stack_id; // team specific stack stitching id (for ittnotify)
 #endif /* USE_ITT_BUILD */
+  kmp_uint64 lpBuffer;
 } kmp_base_team_t;
 
 union KMP_ALIGN_CACHE kmp_team {
@@ -3750,6 +3751,11 @@ KMP_EXPORT void __kmpc_doacross_wait(ident_t *loc, kmp_int32 gtid,
 KMP_EXPORT void __kmpc_doacross_post(ident_t *loc, kmp_int32 gtid,
                                      kmp_int64 *vec);
 KMP_EXPORT void __kmpc_doacross_fini(ident_t *loc, kmp_int32 gtid);
+#endif
+
+#if OMP_50_ENABLED
+KMP_EXPORT void __kmpc_reduce_conditional_lastprivate(ident_t *loc,
+    kmp_int32 global_tid, kmp_int32 num_vars, void *reduce_data);
 #endif
 
 KMP_EXPORT void *__kmpc_threadprivate_cached(ident_t *loc, kmp_int32 global_tid,

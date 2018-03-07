@@ -18,8 +18,6 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#include <kmp.h>
-
 #define OFFLOAD_SUCCESS (0)
 #define OFFLOAD_FAIL (~0)
 
@@ -100,13 +98,25 @@ extern "C" {
 #endif
 
 // Implemented in libomp, they are called from within __tgt_* functions.
+typedef int32_t kmp_int32;
+typedef void ident_t;
+typedef kmp_int32 (*kmp_routine_entry_t)(kmp_int32, void *);
+typedef union kmp_cmplrdata {
+  kmp_int32 priority;
+  kmp_routine_entry_t destructors;
+} kmp_cmplrdata_t;
+typedef struct kmp_task {
+  void *shareds;
+  kmp_routine_entry_t routine;
+  kmp_int32 part_id;
+  kmp_cmplrdata_t data1;
+  kmp_cmplrdata_t data2;
+} kmp_task_t;
 int omp_get_default_device(void) __attribute__((weak));
-//int32_t __kmpc_omp_taskwait(void *loc_ref, int32_t gtid) __attribute__((weak));
 kmp_int32 __kmpc_omp_taskwait(ident_t *loc_ref, kmp_int32 gtid) __attribute__((weak));
 kmp_task_t *__kmpc_omp_task_alloc(ident_t *loc_ref, kmp_int32 gtid,
-                                  kmp_int32 flags, size_t sizeof_kmp_task_t,
-                                  size_t sizeof_shareds,
-                                  kmp_routine_entry_t task_entry) __attribute__((weak));
+    kmp_int32 flags, size_t sizeof_kmp_task_t, size_t sizeof_shareds,
+    kmp_routine_entry_t task_entry) __attribute__((weak));
 
 int omp_get_num_devices(void);
 int omp_get_initial_device(void);

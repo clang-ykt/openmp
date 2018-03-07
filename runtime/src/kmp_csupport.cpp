@@ -3324,4 +3324,38 @@ void __kmpc_doacross_fini(ident_t *loc, int gtid) {
 }
 #endif
 
+#if OMP_50_ENABLED
+#include "kmp_atomic.h"
+void __kmpc_reduce_conditional_lastprivate(ident_t *loc, kmp_int32 global_tid,
+    kmp_int32 num_vars, void *reduce_data) {
+  KA_TRACE(10, ("__kmpc_reduce_conditional_lastprivate() enter: called T#%d\n",
+      global_tid));
+
+  kmp_info_t *th = __kmp_thread_from_gtid(global_tid);
+  kmp_uint64 *Buffer = &th->th.th_team->t.lpBuffer;
+  for (unsigned i = 0; i < num_vars; i++) {
+    // Reset buffer.
+    if (global_tid == 0)
+      *Buffer = 0;  // Reset to minimum loop iteration value.
+
+    // Barrier.
+    __kmpc_barrier(loc, global_tid);
+
+    // Atomic max of iterations.
+    kmp_uint64 *varArray = (kmp_uint64 *) reduce_data;
+    kmp_uint64 elem = varArray[i];
+    __kmpc_atomic_fixed8_max(loc, global_tid, (kmp_int64 *) Buffer, (kmp_int64) elem);
+
+    // Barrier.
+    __kmpc_barrier(loc, global_tid);
+
+    // Read max value and update thread private array.
+    varArray[i] = *Buffer;
+
+    // Barrier.
+    __kmpc_barrier(loc, global_tid);
+  }
+}
+#endif
+
 // end of file //
