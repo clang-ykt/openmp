@@ -351,7 +351,7 @@ int main(void) {
   // Test: Ensure coalesced scheduling on GPU.
   //
   if (!cpuExec) {
-    TESTD("pragma omp target teams num_teams(1) thread_limit(33)", {
+    TESTD("omp target teams num_teams(1) thread_limit(33)", {
       S[0] = 0;
       for (int i = 0; i < 99; i++) {
         A[i] = 0;
