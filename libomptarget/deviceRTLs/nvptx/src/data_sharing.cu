@@ -43,7 +43,7 @@ __device__ static bool IsWarpMasterActiveThread() {
   unsigned long long Mask = getActiveThreadsMask();
   unsigned long long ShNum = WARPSIZE - (getThreadId() % WARPSIZE);
   unsigned long long Sh = Mask << ShNum;
-  return Sh == 0;
+  return (unsigned)Sh == 0;
 }
 // Return true if this is the master thread.
 __device__ static bool IsMasterThread() {
