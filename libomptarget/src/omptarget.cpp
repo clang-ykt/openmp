@@ -2159,10 +2159,7 @@ EXTERN int __tgt_target(int64_t device_id, void *host_ptr, int32_t arg_num,
 
 EXTERN int __tgt_target_nowait(int64_t device_id, void *host_ptr,
     int32_t arg_num, void **args_base, void **args, int64_t *arg_sizes,
-    int64_t *arg_types, int32_t depNum, void *depList, int32_t noAliasDepNum,
-    void *noAliasDepList) {
-  if (depNum + noAliasDepNum > 0)
-    __kmpc_omp_taskwait(NULL, 0);
+    int64_t *arg_types) {
 
   return __tgt_target(device_id, host_ptr, arg_num, args_base, args, arg_sizes,
                       arg_types);
@@ -2199,10 +2196,7 @@ EXTERN int __tgt_target_teams(int64_t device_id, void *host_ptr,
 
 EXTERN int __tgt_target_teams_nowait(int64_t device_id, void *host_ptr,
     int32_t arg_num, void **args_base, void **args, int64_t *arg_sizes,
-    int64_t *arg_types, int32_t team_num, int32_t thread_limit, int32_t depNum,
-    void *depList, int32_t noAliasDepNum, void *noAliasDepList) {
-  if (depNum + noAliasDepNum > 0)
-    __kmpc_omp_taskwait(NULL, 0);
+    int64_t *arg_types, int32_t team_num, int32_t thread_limit) {
 
   return __tgt_target_teams(device_id, host_ptr, arg_num, args_base, args,
                             arg_sizes, arg_types, team_num, thread_limit);

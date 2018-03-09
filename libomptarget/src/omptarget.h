@@ -211,8 +211,7 @@ int __tgt_target(int64_t device_id, void *host_ptr, int32_t arg_num,
                  int64_t *arg_types);
 int __tgt_target_nowait(int64_t device_id, void *host_ptr, int32_t arg_num,
                         void **args_base, void **args, int64_t *arg_sizes,
-                        int64_t *arg_types, int32_t depNum, void *depList,
-                        int32_t noAliasDepNum, void *noAliasDepList);
+                        int64_t *arg_types);
 
 int __tgt_target_teams(int64_t device_id, void *host_ptr, int32_t arg_num,
                        void **args_base, void **args, int64_t *arg_sizes,
@@ -221,9 +220,7 @@ int __tgt_target_teams(int64_t device_id, void *host_ptr, int32_t arg_num,
 int __tgt_target_teams_nowait(int64_t device_id, void *host_ptr,
                               int32_t arg_num, void **args_base, void **args,
                               int64_t *arg_sizes, int64_t *arg_types,
-                              int32_t num_teams, int32_t thread_limit,
-                              int32_t depNum, void *depList,
-                              int32_t noAliasDepNum, void *noAliasDepList);
+                              int32_t num_teams, int32_t thread_limit);
 void __kmpc_push_target_tripcount(int64_t device_id, uint64_t loop_tripcount);
 
 #ifdef __cplusplus
