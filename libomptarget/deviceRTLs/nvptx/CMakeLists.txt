@@ -91,36 +91,56 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
   if (${LIBOMPTARGET_NVPTX_ENABLE_BCLIB})
 
     # Find a clang compiler capable of compiling cuda files to LLVM bitcode and
-    # an LLVM linker.
-    # We use the one provided by the user, attempt to use the one used to build
-    # libomptarget, attempt to use clang in the PATH, or just fail.
+    # an llvm linker.
+    # We use the one provided for the user, attempt to use the
+	# clang in the tree, attempt to use clang in the PATH, or just fail.
 
     set(LIBOMPTARGET_NVPTX_CUDA_COMPILER "" CACHE STRING
       "Location of a CUDA compiler capable of emitting LLVM bitcode.")
     set(LIBOMPTARGET_NVPTX_BC_LINKER "" CACHE STRING
       "Location of a linker capable of linking LLVM bitcode objects.")
+      
+    # Trace we require something from the tree.
+    set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER_FROM_TREE "")
+    set(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER_FROM_TREE "")
 
     if (NOT LIBOMPTARGET_NVPTX_CUDA_COMPILER STREQUAL "")
       set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${LIBOMPTARGET_NVPTX_CUDA_COMPILER})
-    elseif(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
-      set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${CMAKE_C_COMPILER})
+    elseif(NOT ${LIBOMPTARGET_STANDALONE_BUILD} AND
+        EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../tools/clang/)
+      if(MSVC)
+        set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang.exe)
+      else()
+        set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER ${LLVM_TOOLS_BINARY_DIR}/clang)
+      endif()
+      set(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER_FROM_TREE clang)
     else()
+      find_program(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER clang++)
+	endif()
+
+    if (NOT LIBOMPTARGET_NVPTX_BC_LINKER STREQUAL "")
+      set(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER ${LIBOMPTARGET_NVPTX_BC_LINKER})
+    elseif(NOT ${LIBOMPTARGET_STANDALONE_BUILD})
+        if(MSVC)
+          set(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER ${LLVM_TOOLS_BINARY_DIR}/llvm-link.exe)
+        else()
+          set(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER ${LLVM_TOOLS_BINARY_DIR}/llvm-link)
+        endif()
+        set(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER_FROM_TREE llvm-link)
+    else()
+      find_program(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER llvm-link)
+    endif()
+
+
+    if(NOT LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER)
       libomptarget_say("Cannot find a CUDA compiler capable of emitting LLVM bitcode.")
       libomptarget_say("Please configure with flag -DLIBOMPTARGET_NVPTX_CUDA_COMPILER")
     endif()
-
-    # Get compiler directory to try to locate a suitable linker
-    get_filename_component(COMPILER_DIR ${CMAKE_C_COMPILER} DIRECTORY)
-    
-    if (NOT LIBOMPTARGET_NVPTX_BC_LINKER STREQUAL "")
-      set(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER ${LIBOMPTARGET_NVPTX_BC_LINKER})
-    elseif(${CMAKE_C_COMPILER_ID} STREQUAL "Clang" AND EXISTS "${COMPILER_DIR}/llvm-link")
-      # Use llvm-link from the directory containing clang
-      set(LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER ${COMPILER_DIR}/llvm-link)
-    else()
+    if(NOT LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER)
       libomptarget_say("Cannot find a linker capable of linking LLVM bitcode objects.")
       libomptarget_say("Please configure with flag -DLIBOMPTARGET_NVPTX_BC_LINKER")
-    endif()
+	endif()
+
 
     if(LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER AND LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER)
       libomptarget_say("Building CUDA LLVM bitcode offloading device RTL.")
@@ -163,7 +183,7 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
         add_custom_command(OUTPUT ${outfile}.bc
           COMMAND ${LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER} ${CUDA_FLAGS} ${CUDA_ARCH} ${CUDA_INCLUDES}
             -c ${infile} -o ${outfile}.bc
-          DEPENDS ${infile}
+          DEPENDS ${infile} ${LIBOMPTARGET_NVPTX_SELECTED_CUDA_COMPILER_FROM_TREE}
           IMPLICIT_DEPENDS CXX ${infile}
           COMMENT "Building LLVM bitcode ${outfile}.bc"
           VERBATIM
@@ -177,7 +197,7 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
       add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libomptarget-nvptx.bc
           COMMAND ${LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER}
             -o ${CMAKE_CURRENT_BINARY_DIR}/libomptarget-nvptx.bc ${bc_files}
-          DEPENDS ${bc_files}
+          DEPENDS ${bc_files} ${LIBOMPTARGET_NVPTX_SELECTED_BC_LINKER_FROM_TREE}
           COMMENT "Linking LLVM bitcode libomptarget-nvptx.bc"
       )
       set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES libomptarget-nvptx.bc)
