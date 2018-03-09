@@ -128,8 +128,6 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
       # Decide which ptx version to use. Same choices as Clang.
       if(CUDA_VERSION_MAJOR GREATER 9 OR CUDA_VERSION_MAJOR EQUAL 9)
         set(CUDA_PTX_VERSION ptx60)
-      elseif(CUDA_VERSION_MAJOR GREATER 8)
-        set(CUDA_PTX_VERSION ptx50)
       else()
         set(CUDA_PTX_VERSION ptx42)
       endif()
