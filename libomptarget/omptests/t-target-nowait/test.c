@@ -5,9 +5,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+// If one of the libomptarget plugins has been loaded, it means we are running
+// with libomptarget. libomptarget.so is also used by LOMP, so we need to check
+// for libomptarget.rtl.*.
 static int isLibomptarget(struct dl_phdr_info *info, size_t size,
     void *data) {
-  if (strstr(info->dlpi_name, "libomptarget") != NULL) {
+  if (strstr(info->dlpi_name, "libomptarget.rtl") != NULL) {
     *((int *) data) = 1;
     return 1;
   }
