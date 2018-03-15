@@ -1,0 +1,1 @@
+test for target data with two maps pointing to the same array, ref count goes from 2 to zero
