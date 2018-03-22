@@ -58,11 +58,16 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
 
   set(omp_data_objects src/omp_data.cu)
 
-  # Get the compute capability the user requested or use SM_35 by default.
+  # Get all the compute capabilities the user requested or use SM_35 by default.
   # SM_35 is what clang uses by default.
-  set(LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY 35 CACHE STRING
-    "CUDA Compute Capability to be used to compile the NVPTX device RTL.")
-  set(CUDA_ARCH -arch sm_${LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY})
+  if(LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY)
+    string(REPLACE "," ";" nvptx_sm_list ${LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY})
+    foreach(sm ${nvptx_sm_list})
+      set(CUDA_ARCH ${CUDA_ARCH} -gencode arch=compute_${sm},code=sm_${sm})
+    endforeach()
+  else()
+    set(CUDA_ARCH -arch sm_35)
+  endif()
 
   # Activate RTL message dumps if requested by the user.
   set(LIBOMPTARGET_NVPTX_DEBUG FALSE CACHE BOOL
@@ -170,9 +175,15 @@ if(LIBOMPTARGET_DEP_CUDA_FOUND)
         set(CUDA_FLAGS ${CUDA_FLAGS} -Dnv_weak=weak)
       endif()
 
-      # Get the compute capability the user requested or use SM_35 by default.
+      # Get all the compute capabilities the user requested or use SM_35 by default.
       set(CUDA_ARCH "")
-      set(CUDA_ARCH --cuda-gpu-arch=sm_${LIBOMPTARGET_NVPTX_COMPUTE_CAPABILITY})
+      if(nvptx_sm_list)
+        foreach(sm ${nvptx_sm_list})
+          set(CUDA_ARCH ${CUDA_ARCH} --cuda-gpu-arch=sm_${sm})
+        endforeach()
+      else()
+        set(CUDA_ARCH --cuda-gpu-arch=sm_35)
+      endif()
 
       # Compile cuda files to bitcode.
       set(bc_files "")
