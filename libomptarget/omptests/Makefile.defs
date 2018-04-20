@@ -11,6 +11,9 @@ endif
 ifeq ($(GLOMPRTL),)
   $(error GLOMPRTL is not set)
 endif
+ifeq ($(CUDAVERSION),)
+  $(error CUDAVERSION is not set)
+endif
 ifeq ($(LLVMBIN),)
   $(error LLVMBIN is not set)
 endif
@@ -102,8 +105,8 @@ compile_cmd := $(results_folder)/compile.cmd
 # Make sure the libraries are visible 
 #
 
-LD_LIBRARY_PATH := $(HOSTRTL):$(TARGETRTL):$(GLOMPRTL):/usr/local/cuda/lib64:$(results_folder):$(extra_ld_lib_path)
+LD_LIBRARY_PATH := $(HOSTRTL):$(TARGETRTL):$(GLOMPRTL):$(CUDAVERSION)/lib64:$(results_folder):$(extra_ld_lib_path)
 export LD_LIBRARY_PATH
-LIBRARY_PATH := $(GLOMPRTL):/usr/local/cuda/lib64:/usr/local/cuda/nvvm/libdevice
+LIBRARY_PATH := $(GLOMPRTL):$(CUDAVERSION)/lib64:$(CUDAVERSION)/nvvm/libdevice
 export LIBRARY_PATH
 
