@@ -91,6 +91,9 @@ EXTERN bool __kmpc_kernel_convergent_simd(void *buffer, uint32_t Mask, bool *IsF
     // install top descriptor from the thread for which the lanes are working.
     omptarget_nvptx_threadPrivateContext->SetTopLevelTaskDescr(threadId,
                                                                sourceTaskDescr);
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+    sourceTaskDescr->SetFullWarpSimd();
+#endif
     isActive = true;
   }
 
@@ -102,6 +105,11 @@ EXTERN void __kmpc_kernel_end_convergent_simd(void *buffer) {
   PRINT0(LD_IO | LD_PAR, "call to __kmpc_kernel_end_convergent_parallel\n");
   // pop stack
   int threadId = GetLogicalThreadIdInBlock();
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+  omptarget_nvptx_TaskDescr *currTaskDescr =
+      omptarget_nvptx_threadPrivateContext->GetTopLevelTaskDescr(threadId);
+  currTaskDescr->ClearFullWarpSimd();
+#endif
   ConvergentSimdJob *job = (ConvergentSimdJob *) buffer;
   omptarget_nvptx_threadPrivateContext->SimdLimitForNextSimd(threadId) =
       job->slimForNextSimd;
@@ -422,7 +430,11 @@ EXTERN uint16_t __kmpc_parallel_level(kmp_Indent *loc,
   if (currTaskDescr->InL2OrHigherParallelRegion())
     return 2;
   else if (currTaskDescr->InParallelRegion())
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+    return __ACTIVEMASK() == 0xffffffff ? 1 : 2;
+#else
     return 1;
+#endif
   else
     return 0;
 }

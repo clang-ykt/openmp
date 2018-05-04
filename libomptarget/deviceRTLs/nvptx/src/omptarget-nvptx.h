@@ -112,11 +112,18 @@ public:
   INLINE void ClearDynamic() {
     data.items.flags = data.items.flags & (~TaskDescr_IsDynamic);
   }
+  INLINE void SetFullWarpSimd() {
+    data.items.flags = data.items.flags | TaskDescr_FullWarpSimd;
+  }
+  INLINE void ClearFullWarpSimd() {
+    data.items.flags = data.items.flags & (~TaskDescr_FullWarpSimd);
+  }
   INLINE int InParallelRegion() { return data.items.flags & TaskDescr_InPar; }
   INLINE int InL2OrHigherParallelRegion() { return data.items.flags & TaskDescr_InParL2P; }
   INLINE int IsParallelConstruct() {
     return data.items.flags & TaskDescr_IsParConstr;
   }
+  INLINE int IsFullWarpSimd() { return data.items.flags & TaskDescr_FullWarpSimd; }
   INLINE int IsTaskConstruct() { return !IsParallelConstruct(); }
   // methods for other fields
   INLINE uint16_t &NThreads() { return data.items.nthreads; }
@@ -154,11 +161,12 @@ private:
   static const uint8_t TaskDescr_InPar = 0x10;
   static const uint8_t TaskDescr_IsParConstr = 0x20;
   static const uint8_t TaskDescr_InParL2P = 0x40;
+  static const uint8_t TaskDescr_FullWarpSimd = 0x80;
 
   union { // both have same size
     uint64_t vect[2];
     struct TaskDescr_items {
-      uint8_t flags; // 6 bit used (see flag above)
+      uint8_t flags; // 8 bits used (see flag above)
       uint8_t unused;
       uint16_t nthreads;         // thread num for subsequent parallel regions
       uint16_t threadlimit;      // thread limit ICV

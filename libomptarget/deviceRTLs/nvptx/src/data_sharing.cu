@@ -35,7 +35,11 @@ __device__ static unsigned getMasterThreadId() {
 // Find the active threads in the warp - return a mask whose n-th bit is set if
 // the n-th thread in the warp is active.
 __device__ static unsigned getActiveThreadsMask() {
+#if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700)
+  return __ACTIVEMASK();
+#else
   return __BALLOT_SYNC(0xFFFFFFFF, true);
+#endif
 }
 
 // Return true if this is the first active thread in the warp.
@@ -236,6 +240,8 @@ EXTERN void __kmpc_data_sharing_environment_end(
 
   unsigned WID = getWarpId();
 
+  int32_t CurActive = getActiveThreadsMask();
+
   if (IsEntryPoint){
     if (IsWarpMasterActiveThread()) {
       DSPRINT0(DSFLAG,"Doing clean up\n");
@@ -252,8 +258,6 @@ EXTERN void __kmpc_data_sharing_environment_end(
     DSPRINT0(DSFLAG,"Exiting Exiting __kmpc_data_sharing_environment_end\n");
     return;
   }
-
-  int32_t CurActive = getActiveThreadsMask();
 
   // Only the warp master can restore the stack and frame information, and only if there are no other threads left behind in this environment (i.e. the warp diverged and returns in different places). This only works if we assume that threads will converge right after the call site that started the environment.
   if (IsWarpMasterActiveThread()) {

@@ -115,6 +115,7 @@ static INLINE void gpu_irregular_warp_reduce(void *reduce_data, kmp_ShuffleReduc
   }
 }
 
+#if !defined(__CUDA_ARCH__) || __CUDA_ARCH__ < 700
 static INLINE uint32_t gpu_irregular_simd_reduce(void *reduce_data, kmp_ShuffleReductFctPtr shflFct) {
   uint32_t lanemask_lt;
   uint32_t lanemask_gt;
@@ -134,7 +135,29 @@ static INLINE uint32_t gpu_irregular_simd_reduce(void *reduce_data, kmp_ShuffleR
   } while (logical_lane_id % 2 == 0 && size > 1);
   return (logical_lane_id == 0);
 }
+#endif
 
+#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+EXTERN
+int32_t __kmpc_nvptx_simd_reduce_nowait(int32_t global_tid,
+                                        int32_t num_vars, size_t reduce_size,
+                                        void *reduce_data,
+                                        kmp_ShuffleReductFctPtr shflFct,
+                                        kmp_InterWarpCopyFctPtr cpyFct) {
+  // On Volta L2 Parallel and SIMD regions are either executed by all 32 lanes
+  // in a warp or just one lane (in the case of divergence).
+  uint32_t BlockThreadId = GetLogicalThreadIdInBlock();
+  omptarget_nvptx_TaskDescr *currTaskDescr =
+      omptarget_nvptx_threadPrivateContext->GetTopLevelTaskDescr(BlockThreadId);
+
+  if (currTaskDescr->IsFullWarpSimd()) {
+    gpu_regular_warp_reduce(reduce_data, shflFct);
+    return BlockThreadId % WARPSIZE == 0;
+  } else {
+    return 1;
+  }
+}
+#else
 EXTERN
 int32_t __kmpc_nvptx_simd_reduce_nowait(int32_t global_tid,
                                         int32_t num_vars, size_t reduce_size,
@@ -149,6 +172,7 @@ int32_t __kmpc_nvptx_simd_reduce_nowait(int32_t global_tid,
     return gpu_irregular_simd_reduce(reduce_data, shflFct); // Result on the first active lane.
   }
 }
+#endif
 
 INLINE
 int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
@@ -168,7 +192,7 @@ int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
    * 4. The reduced value is available in the thread that returns 1.
    */
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700
+#if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 700)
   uint32_t BlockThreadId = GetLogicalThreadIdInBlock();
   uint32_t NumThreads = GetNumberOfOmpThreads(BlockThreadId, isSPMDExecutionMode, isRuntimeUninitialized);
   uint32_t WarpsNeeded = (NumThreads+WARPSIZE-1)/WARPSIZE;
@@ -180,7 +204,7 @@ int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
   // For the SPMD execution mode we may have any number of threads.
   if ((NumThreads % WARPSIZE == 0) || (WarpId < WarpsNeeded - 1))
     gpu_regular_warp_reduce(reduce_data, shflFct);
-  else if (NumThreads > 1) // Only SPMD execution mode comes thru this case.
+  else if (isSPMDExecutionMode && NumThreads > 1) // Only SPMD execution mode comes thru this case.
     gpu_irregular_warp_reduce(reduce_data, shflFct,
         /*LaneCount=*/NumThreads % WARPSIZE, /*LaneId=*/GetThreadIdInBlock() % WARPSIZE);
 
@@ -197,8 +221,10 @@ int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
       gpu_irregular_warp_reduce(reduce_data, shflFct, WarpsNeeded, BlockThreadId);
 
     return BlockThreadId == 0;
+  } else if (isRuntimeUninitialized /* Never an L2 parallel region without the OMP runtime */) {
+    return BlockThreadId == 0;
   }
-  return BlockThreadId == 0;
+
 #else
   uint32_t Liveness = __BALLOT_SYNC(0xFFFFFFFF, true);
   if (Liveness == 0xffffffff) // Full warp
@@ -230,12 +256,12 @@ int32_t nvptx_parallel_reduce_nowait(int32_t global_tid, int32_t num_vars,
   } else if (isRuntimeUninitialized /* Never an L2 parallel region without the OMP runtime */) {
     return BlockThreadId == 0;
   }
+#endif // __CUDA_ARCH__ >= 700
 
   // Get the OMP thread Id. This is different from BlockThreadId in the case of
   // an L2 parallel region.
   return GetOmpThreadId(BlockThreadId, isSPMDExecutionMode, isRuntimeUninitialized) == 0;
 }
-#endif // __CUDA_ARCH__ >= 700
 
 EXTERN
 int32_t __kmpc_nvptx_parallel_reduce_nowait(
@@ -295,7 +321,7 @@ int32_t nvptx_teams_reduce_nowait(
     // It resets 'timestamp' back to 0 once the last team increments
     // this counter.
     unsigned val = atomicInc(timestamp, NumTeams-1);
-    IsLastTeam = val == NumTeams - 1;
+    IsLastTeam = (val == NumTeams - 1);
   }
 
   // We have to wait on L1 barrier because in GENERIC mode the workers
@@ -382,10 +408,10 @@ int32_t nvptx_teams_reduce_nowait(
     if (WarpId == 0)
       gpu_irregular_warp_reduce(reduce_data, shflFct, WarpsNeeded, ThreadId);
   }
+#endif // __CUDA_ARCH__ >= 700
 
   return ThreadId == 0;
 }
-#endif // __CUDA_ARCH__ >= 700
 
 EXTERN
 int32_t __kmpc_nvptx_teams_reduce_nowait(int32_t global_tid, int32_t num_vars,
